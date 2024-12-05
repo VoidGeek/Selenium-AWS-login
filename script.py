@@ -6,12 +6,12 @@ class Application:
     """Main application wrapper with centralized error handling."""
     @staticmethod
     def run():
-        try:
-            github_automation = GitHubLoginAutomation()
-            github_automation.login_with_cookies()
-        except Exception as e:
-            ErrorHandler.handle_error(e)
+        github_automation = GitHubLoginAutomation()
+        github_automation.login_with_cookies()
 
 
 if __name__ == "__main__":
-    Application.run()
+    try:
+        Application.run()
+    except Exception as e:
+        ErrorHandler.handle_error(e)

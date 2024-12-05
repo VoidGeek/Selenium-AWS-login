@@ -1,8 +1,8 @@
 import os
 import time
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
-from utils.error_handler import ErrorHandler
 
 
 class GitHubLoginAutomation:
@@ -31,13 +31,23 @@ class GitHubLoginAutomation:
         for cookie in self.cookies:
             self.driver.add_cookie(cookie)
 
+    def _validate_login(self):
+        """Validate if login was successful using the provided XPath."""
+        time.sleep(3)  # Wait for the page to load after refresh
+
+        # Use the provided XPath to check for a logged-in user indicator
+        login_indicator = self.driver.find_elements(By.XPATH, "/html/body/div[1]/div[5]/div/div/aside/div/div/loading-context/div/div[1]/div/div[1]/a")
+
+        if not login_indicator:
+            raise ValueError("Login validation failed. Cookies may be invalid or expired.")
+
+        print("Login validation successful.")
+
     def login_with_cookies(self):
         """Automate GitHub login using session cookies."""
-        try:
-            self.driver.get("https://github.com")
-            self._add_cookies_to_browser()
-            self.driver.refresh()
-            time.sleep(5)
-            print("Logged in successfully using cookies!")
-        finally:
-            self.driver.quit()
+        self.driver.get("https://github.com")
+        self._add_cookies_to_browser()
+        self.driver.refresh()
+        self._validate_login()
+        print("Logged in successfully using cookies!")
+        self.driver.quit()
