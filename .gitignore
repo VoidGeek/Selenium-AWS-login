@@ -21,6 +21,7 @@ Thumbs.db
 *.log
 *.out
 *.err
+blog_post_summary.html
 
 # Selenium WebDriver
 chromedriver.log
