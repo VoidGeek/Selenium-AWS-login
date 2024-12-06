@@ -2,6 +2,7 @@ import os
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from dotenv import load_dotenv
 
 
@@ -49,5 +50,36 @@ class GitHubLoginAutomation:
         self._add_cookies_to_browser()
         self.driver.refresh()
         self._validate_login()
+
         print("Logged in successfully using cookies!")
+
+        # Wait for the page to load fully
+        time.sleep(3)
+
+        # Click the first button (XPath: /html/body/div[1]/div[1]/header/div/div[2]/div[3]/deferred-side-panel/include-fragment/react-partial-anchor/button)
+        first_button = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[1]/header/div/div[2]/div[3]/deferred-side-panel/include-fragment/react-partial-anchor/button")
+        first_button.click()
+
+        time.sleep(2)  # Wait for any animations to finish or the side panel to open
+
+        # Click the second button (XPath: //*[@id=":rg:"])
+        second_button = self.driver.find_element(By.XPATH, "//*[@id=':rg:']")
+        second_button.click()
+
+        time.sleep(3)  # Wait for the repositories page to load
+
+        # Retrieve the HTML content of the repositories page
+        page_html = self.driver.page_source
+
+        # Save the HTML content to a file
+        with open("repositories_page.html", "w", encoding="utf-8") as file:
+            file.write(page_html)
+
+        print("Repositories page HTML saved to 'repositories_page.html'.")
+
+        # Optionally, you can open the HTML file in the default browser
+        os.system("start repositories_page.html")  # For Windows
+        # For Linux or Mac, use: os.system("open repositories_page.html")
+
         self.driver.quit()
+
