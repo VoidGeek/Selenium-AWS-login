@@ -1,197 +1,70 @@
 import os
-import requests
-from openai import OpenAI
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 import time
 
-# Load environment variables from the .env file
+# Load environment variables from the .env file (if you want to store credentials securely)
 load_dotenv()
 
-# Initialize OpenAI client with API key from environment variable
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Netflix login credentials (can also be stored in .env for security)
+email = "keerthi.is21@sahyadri.edu.in"
+password = "14072003Aa*"
 
-# Function to get the latest blog post and generate summary using OpenAI
-def get_and_summarize_latest_post():
-    # Initialize the WebDriver (Chrome)
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-    driver.get("https://bshreekara.blogspot.com")  # Replace with the correct URL
+# Initialize the WebDriver (Chrome)
+options = Options()
+options.add_argument("--start-maximized")
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-    # Wait until the page is fully loaded by checking the presence of blog posts
+# Function to log in to Netflix and render the page as HTML
+def login_to_netflix():
     try:
-        WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".post")))
+        # Open Netflix login page
+        driver.get("https://www.netflix.com/login")
 
-        # Find the latest blog post (featured post usually appears first)
-        latest_blog = driver.find_element(By.CSS_SELECTOR, ".post")  # Adjust if needed
+        # Wait for the page to load
+        time.sleep(3)
 
-        # Get the title and link of the latest blog post
-        title = latest_blog.find_element(By.CSS_SELECTOR, "h3.post-title").text  # Modify selector to match title
-        link = latest_blog.find_element(By.TAG_NAME, "a").get_attribute("href")  # Extract blog post link
+        # Find and input the email field using provided XPath
+        email_field = driver.find_element(By.XPATH, '//*[@id=":r0:"]')
+        email_field.send_keys(email)
+        time.sleep(3)
 
-        # Render/Display the latest post title and link
-        print(f"Latest Blog Post Found: {title}")
-        print(f"Link: {link}")
+        # Find and input the password field using provided XPath
+        password_field = driver.find_element(By.XPATH, '//*[@id=":r3:"]')
+        password_field.send_keys(password)
 
-        # Open the blog post to extract HTML content
-        driver.get(link)
+        # Find and click the submit button using a more stable CSS selector (e.g., by button's class or text)
+        submit_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+        submit_button.click()
 
-        # Wait for the content to load completely
-        WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".post-body")))
+        # Wait for login to process (you can adjust the sleep time if necessary)
+        time.sleep(5)
 
-        # Extract the post content (assuming it's in a div with class 'post-body')
-        post_body = driver.find_element(By.CSS_SELECTOR, ".post-body").get_attribute('innerHTML')
+        print("Login Successful\n")
+        # Capture the page HTML after login
+        page_html = driver.page_source
 
-        # Use BeautifulSoup to parse the HTML and clean the content
-        soup = BeautifulSoup(post_body, "html.parser")
-        text_content = soup.get_text()  # Extracts the raw text without HTML tags
-
-        # Extract image URLs
-        images = extract_images(soup)
-
-        # Print the full post content (for verification)
-        print("\nFull Blog Post Content:")
-        print(text_content[:500])  # Display the first 500 characters for brevity
-
-        # Generate a summary using OpenAI API
-        summary = generate_summary_openai(text_content)  # Function to generate summary
-        print("\nSummary of the Post:")
-        print(summary)
-
-        # Generate and save HTML file
-        generate_html_file(summary, images)
+        # Save the HTML content to a file
+        save_html_to_file(page_html)
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error during login: {e}")
+    finally:
+        # Close the browser after some time
+        time.sleep(5)
+        driver.quit()
 
-    # Close the browser session
-    driver.quit()
-
-# Function to generate a summary using OpenAI's API
-def generate_summary_openai(text):
-    try:
-        # Using OpenAI's ChatCompletion API
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "user", "content": f"Summarize the following blog post in English:\n\n{text}"}
-            ],
-            model="gpt-4",  # Use GPT-4 model for summarization
-        )
-
-        # Correct way to access the summary
-        summary = chat_completion.choices[0].message.content
-        return summary
-    except Exception as e:
-        print(f"OpenAI Summarization Error: {e}")
-        return "Summary not available."
-
-# Function to extract image URLs from the blog post
-def extract_images(soup):
-    # Find all image tags and extract the 'src' attribute
-    images = soup.find_all('img')
-    image_urls = []
-    for img in images:
-        img_url = img.get('src')
-        if img_url:
-            image_urls.append(img_url)
-    return image_urls
-
-# Function to generate an HTML file with the summary and images
-def generate_html_file(summary, images):
+# Function to save the HTML page source to a file
+def save_html_to_file(html_content):
     try:
         # Define the file name for the HTML file
-        file_name = "blog_post_summary.html"
+        file_name = "netflix_home_page.html"
 
-        # Create HTML content with professional styling
-        html_content = f"""
-        <html>
-        <head>
-            <title>Blog Post Summary</title>
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    margin: 0;
-                    padding: 0;
-                    background-color: #f4f4f4;
-                    color: #333;
-                    line-height: 1.6;
-                }}
-                .container {{
-                    width: 80%;
-                    margin: 0 auto;
-                    padding: 20px;
-                    background-color: #fff;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    border-radius: 8px;
-                }}
-                h1 {{
-                    text-align: center;
-                    color: #2c3e50;
-                }}
-                h2 {{
-                    color: #3498db;
-                }}
-                p {{
-                    font-size: 1.1em;
-                    margin-bottom: 20px;
-                }}
-                .images {{
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 20px;
-                    justify-content: center;
-                }}
-                .images img {{
-                    max-width: 100%;
-                    height: auto;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    transition: transform 0.3s;
-                }}
-                .images img:hover {{
-                    transform: scale(1.05);
-                }}
-                .image-container {{
-                    width: 30%;
-                    margin-bottom: 20px;
-                }}
-                @media (max-width: 768px) {{
-                    .image-container {{
-                        width: 100%;
-                    }}
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Blog Post Summary</h1>
-                <h2>Summary:</h2>
-                <p>{summary}</p>
-                <h2>Images:</h2>
-                <div class="images">
-        """
-        
-        # Add images to the HTML content
-        for img_url in images:
-            html_content += f"""
-                <div class="image-container">
-                    <img src="{img_url}" alt="Blog Post Image">
-                </div>
-            """
-        
-        html_content += """
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-
-        # Write the HTML content to a file
+        # Save the HTML content to the file
         with open(file_name, "w", encoding="utf-8") as file:
             file.write(html_content)
 
@@ -201,7 +74,7 @@ def generate_html_file(summary, images):
         open_html_file(file_name)
 
     except Exception as e:
-        print(f"Error generating HTML file: {e}")
+        print(f"Error saving HTML file: {e}")
 
 # Function to open the HTML file in the browser
 def open_html_file(file_name):
@@ -217,7 +90,7 @@ def open_html_file(file_name):
 
 # Main function to run the script
 def main():
-    get_and_summarize_latest_post()
+    login_to_netflix()
 
 if __name__ == "__main__":
     main()
